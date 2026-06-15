@@ -10,7 +10,7 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/M-Grid-">
       <Routes>
         <Route element={<Layout onNewAktivitaet={() => setModalOpen(true)} />}>
           <Route index element={<Dashboard modalOpen={modalOpen} setModalOpen={setModalOpen} />} />
