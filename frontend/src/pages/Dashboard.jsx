@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { api } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
 import { TypBadge } from '../components/TypBadge';
-import { AktivitaetModal } from '../components/AktivitaetModal';
+import { VorhabenModal } from '../components/VorhabenModal';
 
 function KpiCard({ label, value, color }) {
   return (
@@ -23,6 +23,12 @@ function ProgressBar({ value }) {
     </div>
   );
 }
+
+const RISIKO_COLORS = {
+  hoch: 'text-red-500',
+  mittel: 'text-amber-500',
+  niedrig: 'text-green-500',
+};
 
 export function Dashboard({ modalOpen, setModalOpen }) {
   const [aktivitaeten, setAktivitaeten] = useState([]);
@@ -60,7 +66,7 @@ export function Dashboard({ modalOpen, setModalOpen }) {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Übersicht aller Aktivitäten – Digitales Messen & Steuern</p>
+        <p className="text-slate-500 text-sm mt-1">Übersicht aller Vorhaben – Digitales Messen & Steuern</p>
       </div>
 
       {summary && (
@@ -90,24 +96,26 @@ export function Dashboard({ modalOpen, setModalOpen }) {
             <option value="abgeschlossen">Abgeschlossen</option>
             <option value="pausiert">Pausiert</option>
           </select>
-          <span className="ml-auto text-sm text-slate-400">{aktivitaeten.length} Einträge</span>
+          <span className="ml-auto text-sm text-slate-400">{aktivitaeten.length} Vorhaben</span>
         </div>
 
         {loading ? (
           <p className="text-center text-slate-400 py-12">Lade…</p>
         ) : aktivitaeten.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
-            <p className="text-lg">Noch keine Aktivitäten</p>
-            <p className="text-sm mt-1">Klicke auf „Neue Aktivität" um zu starten</p>
+            <p className="text-lg">Noch keine Vorhaben</p>
+            <p className="text-sm mt-1">Klicke auf „Neue Aktivität" um ein Vorhaben anzulegen</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b">
-                <th className="px-5 py-3">Name</th>
+              <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b bg-slate-50">
+                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Name</th>
                 <th className="px-3 py-3">Typ</th>
                 <th className="px-3 py-3">Status</th>
                 <th className="px-3 py-3">Fortschritt</th>
+                <th className="px-3 py-3">Risiko</th>
                 <th className="px-3 py-3">Ende (geplant)</th>
                 <th className="px-3 py-3">Verantwortl.</th>
                 <th className="px-3 py-3"></th>
@@ -118,13 +126,25 @@ export function Dashboard({ modalOpen, setModalOpen }) {
                 const heute = new Date().toISOString().slice(0, 10);
                 const inVerzug = a.end_geplant && a.end_geplant < heute &&
                   !['abgeschlossen', 'pausiert'].includes(a.status) && (a.fortschritt ?? 0) < 100;
+                const meta = a.metadaten || {};
+                const risikoScore = ['niedrig', 'mittel', 'hoch'].indexOf(meta.risiko_eintritt ?? 'mittel')
+                  * ['niedrig', 'mittel', 'hoch'].indexOf(meta.risiko_auswirkung ?? 'mittel');
+                const risikoLevel = risikoScore >= 4 ? 'hoch' : risikoScore >= 1 ? 'mittel' : 'niedrig';
+
                 return (
                   <tr key={a.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3 font-medium text-slate-800">
+                    <td className="px-4 py-3 text-slate-400 text-xs font-mono">
+                      {meta.aktivitaet_id || '—'}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-800">
                       <div className="flex items-center gap-2">
-                        {inVerzug && <AlertTriangle size={14} className="text-red-400 shrink-0" />}
-                        {a.name}
+                        {inVerzug && <AlertTriangle size={13} className="text-red-400 shrink-0" />}
+                        {meta.regulatorik && <ShieldAlert size={13} className="text-blue-400 shrink-0" title="Regulatorisch relevant" />}
+                        <span>{a.name}</span>
                       </div>
+                      {meta.mengengeber_bereich && (
+                        <p className="text-xs text-slate-400 mt-0.5">{meta.mengengeber_bereich}</p>
+                      )}
                     </td>
                     <td className="px-3 py-3"><TypBadge typ={a.typ} /></td>
                     <td className="px-3 py-3"><StatusBadge status={a.status} /></td>
@@ -134,8 +154,13 @@ export function Dashboard({ modalOpen, setModalOpen }) {
                         <span className="text-slate-400 text-xs">{a.fortschritt}%</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-slate-500">{a.end_geplant || '—'}</td>
-                    <td className="px-3 py-3 text-slate-500">{a.verantwortlicher || '—'}</td>
+                    <td className="px-3 py-3">
+                      <span className={`text-xs font-medium capitalize ${RISIKO_COLORS[risikoLevel]}`}>
+                        {risikoLevel}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-slate-500 text-xs">{a.end_geplant || '—'}</td>
+                    <td className="px-3 py-3 text-slate-500 text-xs">{a.verantwortlicher || '—'}</td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2 justify-end">
                         <button onClick={() => openEdit(a)}
@@ -157,8 +182,8 @@ export function Dashboard({ modalOpen, setModalOpen }) {
       </div>
 
       {modalOpen && (
-        <AktivitaetModal
-          aktivitaet={editItem}
+        <VorhabenModal
+          vorhaben={editItem}
           onClose={closeModal}
           onSaved={handleSaved}
         />
