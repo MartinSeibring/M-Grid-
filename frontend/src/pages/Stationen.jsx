@@ -130,7 +130,8 @@ export function Stationen() {
               <p className="text-sm mt-1">Klicke auf „Neue Station" um zu beginnen</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b bg-slate-50">
                   <th className="px-5 py-3">Bezeichnung</th>
@@ -164,6 +165,7 @@ export function Stationen() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       ) : (

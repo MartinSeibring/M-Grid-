@@ -64,8 +64,8 @@ export function Dashboard({ modalOpen, setModalOpen }) {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800">Dashboard</h1>
         <p className="text-slate-500 text-sm mt-1">Übersicht aller Vorhaben – Digitales Messen & Steuern</p>
       </div>
 
@@ -107,7 +107,8 @@ export function Dashboard({ modalOpen, setModalOpen }) {
             <p className="text-sm mt-1">Klicke auf „Neue Aktivität" um ein Vorhaben anzulegen</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="text-left text-slate-500 text-xs uppercase tracking-wider border-b bg-slate-50">
                 <th className="px-4 py-3">ID</th>
@@ -178,6 +179,7 @@ export function Dashboard({ modalOpen, setModalOpen }) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

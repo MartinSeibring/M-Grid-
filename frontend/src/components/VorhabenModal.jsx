@@ -58,6 +58,7 @@ function RisikoMatrix({ eintritt, auswirkung, onChange }) {
   return (
     <div>
       <p className="text-xs text-slate-500 mb-2">Klicke auf eine Zelle, um Eintritt × Auswirkung zu setzen</p>
+      <div className="overflow-x-auto">
       <div className="inline-block border border-slate-200 rounded-lg overflow-hidden">
         <table className="text-xs text-center">
           <thead>
@@ -93,6 +94,7 @@ function RisikoMatrix({ eintritt, auswirkung, onChange }) {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
       <p className="text-xs text-slate-500 mt-2">
         Aktuell: Eintritt = <strong>{labels[eintritt]}</strong>, Auswirkung = <strong>{labels[auswirkung]}</strong>
@@ -266,7 +268,7 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
 
     // Tab 2: Stakeholder
     <div key="stakeholder" className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="BN / ME (Stakeholder)">
           <textarea rows={3} value={m.stakeholder_bn_me} onChange={setMeta('stakeholder_bn_me')}
             placeholder="z.B. BN: Herr Müller&#10;ME: Team NSD" className={TEXTAREA} />
@@ -354,7 +356,7 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 max-h-[92vh] flex flex-col">
+      <div className="bg-white md:rounded-xl shadow-xl w-full md:max-w-3xl md:mx-4 h-full md:h-auto md:max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
           <div>

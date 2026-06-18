@@ -115,7 +115,7 @@ export function StationModal({ station, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white md:rounded-xl shadow-xl w-full md:max-w-xl md:mx-4 h-full md:h-auto md:max-h-[90vh] overflow-y-auto flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-slate-800">
             {station?.id ? 'Station bearbeiten' : 'Neue Netztrafostation'}
