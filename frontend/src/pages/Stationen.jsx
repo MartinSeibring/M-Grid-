@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 import { Map, Table2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 import { StationModal } from '../components/StationModal';
@@ -42,13 +41,19 @@ export function Stationen() {
 
   async function load() {
     setLoading(true);
-    const [items, sum] = await Promise.all([
-      api.getStationen(filterStatus ? { status: filterStatus } : {}),
-      api.getStationenSummary(),
-    ]);
-    setStationen(items);
-    setSummary(sum);
-    setLoading(false);
+    try {
+      const [items, sum] = await Promise.all([
+        api.getStationen(filterStatus ? { status: filterStatus } : {}),
+        api.getStationenSummary(),
+      ]);
+      setStationen(items);
+      setSummary(sum);
+    } catch {
+      setStationen([]);
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, [filterStatus]);
