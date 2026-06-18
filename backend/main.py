@@ -95,3 +95,44 @@ def delete_abhaengigkeit(abhaengigkeit_id: str, db: Session = Depends(get_db)):
 @app.get("/api/analytics/summary", response_model=schemas.AnalyticsSummary)
 def analytics_summary(db: Session = Depends(get_db)):
     return crud.get_analytics_summary(db)
+
+
+# ── Netztrafostation ──────────────────────────────────────────────────────────
+
+@app.get("/api/stationen/summary", response_model=schemas.StationenSummary)
+def stationen_summary(db: Session = Depends(get_db)):
+    return crud.get_stationen_summary(db)
+
+
+@app.get("/api/stationen", response_model=list[schemas.NetztrafoOut])
+def list_stationen(status: Optional[str] = None, db: Session = Depends(get_db)):
+    return crud.get_stationen(db, status=status)
+
+
+@app.post("/api/stationen", response_model=schemas.NetztrafoOut, status_code=201)
+def create_station(data: schemas.NetztrafoCreate, db: Session = Depends(get_db)):
+    return crud.create_station(db, data)
+
+
+@app.get("/api/stationen/{station_id}", response_model=schemas.NetztrafoOut)
+def get_station(station_id: str, db: Session = Depends(get_db)):
+    obj = crud.get_station(db, station_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Nicht gefunden")
+    return obj
+
+
+@app.put("/api/stationen/{station_id}", response_model=schemas.NetztrafoOut)
+def update_station(station_id: str, data: schemas.NetztrafoUpdate, db: Session = Depends(get_db)):
+    obj = crud.update_station(db, station_id, data)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Nicht gefunden")
+    return obj
+
+
+@app.delete("/api/stationen/{station_id}")
+def delete_station(station_id: str, db: Session = Depends(get_db)):
+    obj = crud.delete_station(db, station_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Nicht gefunden")
+    return {"ok": True}

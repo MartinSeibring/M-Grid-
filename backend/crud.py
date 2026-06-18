@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy.orm import Session
-from models import Aktivitaet, Abhaengigkeit, StatusEnum
-from schemas import AktivitaetCreate, AktivitaetUpdate, AbhaengigkeitCreate
+from models import Aktivitaet, Abhaengigkeit, StatusEnum, Netztrafostation, StationsStatusEnum
+from schemas import AktivitaetCreate, AktivitaetUpdate, AbhaengigkeitCreate, NetztrafoCreate, NetztrafoUpdate
 
 
 def get_aktivitaeten(db: Session, typ: str = None, status: str = None):
@@ -91,4 +91,59 @@ def get_analytics_summary(db: Session):
         "nach_typ": nach_typ,
         "in_verzug": in_verzug,
         "durchschnitt_fortschritt": round(gesamt_fortschritt / len(alle), 1) if alle else 0.0,
+    }
+
+
+# ── Netztrafostation ──────────────────────────────────────────────────────────
+
+def get_stationen(db: Session, status: str = None):
+    q = db.query(Netztrafostation)
+    if status:
+        q = q.filter(Netztrafostation.status == status)
+    return q.order_by(Netztrafostation.name).all()
+
+
+def get_station(db: Session, station_id: str):
+    return db.query(Netztrafostation).filter(Netztrafostation.id == station_id).first()
+
+
+def create_station(db: Session, data: NetztrafoCreate):
+    obj = Netztrafostation(**data.model_dump())
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def update_station(db: Session, station_id: str, data: NetztrafoUpdate):
+    obj = get_station(db, station_id)
+    if not obj:
+        return None
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(obj, field, value)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def delete_station(db: Session, station_id: str):
+    obj = get_station(db, station_id)
+    if obj:
+        db.delete(obj)
+        db.commit()
+    return obj
+
+
+def get_stationen_summary(db: Session):
+    alle = db.query(Netztrafostation).all()
+    counts = {s.value: 0 for s in StationsStatusEnum}
+    for s in alle:
+        counts[s.status.value] += 1
+    gesamt = len(alle)
+    return {
+        "gesamt": gesamt,
+        "nicht_ausgestattet": counts["nicht_ausgestattet"],
+        "ausgestattet": counts["ausgestattet"],
+        "aktiv": counts["aktiv"],
+        "quote_aktiv": round(counts["aktiv"] / gesamt * 100, 1) if gesamt else 0.0,
     }

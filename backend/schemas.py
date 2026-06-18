@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Any
 from datetime import date, datetime
-from models import TypEnum, StatusEnum, PrioritaetEnum, AbhaengigkeitTypEnum
+from models import TypEnum, StatusEnum, PrioritaetEnum, AbhaengigkeitTypEnum, StationsStatusEnum
 
 
 class AktivitaetBase(BaseModel):
@@ -71,3 +71,49 @@ class AnalyticsSummary(BaseModel):
     nach_typ: dict[str, int]
     in_verzug: int
     durchschnitt_fortschritt: float
+
+
+class NetztrafoBase(BaseModel):
+    name: str
+    adresse: Optional[str] = None
+    stadtteil: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    status: StationsStatusEnum = StationsStatusEnum.nicht_ausgestattet
+    ausgestattet_am: Optional[date] = None
+    aktiv_seit: Optional[date] = None
+    letztes_auslesen: Optional[date] = None
+    anmerkungen: Optional[str] = None
+
+
+class NetztrafoCreate(NetztrafoBase):
+    pass
+
+
+class NetztrafoUpdate(BaseModel):
+    name: Optional[str] = None
+    adresse: Optional[str] = None
+    stadtteil: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    status: Optional[StationsStatusEnum] = None
+    ausgestattet_am: Optional[date] = None
+    aktiv_seit: Optional[date] = None
+    letztes_auslesen: Optional[date] = None
+    anmerkungen: Optional[str] = None
+
+
+class NetztrafoOut(NetztrafoBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class StationenSummary(BaseModel):
+    gesamt: int
+    nicht_ausgestattet: int
+    ausgestattet: int
+    aktiv: int
+    quote_aktiv: float

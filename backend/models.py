@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, Date, DateTime, Text, JSON, Enum, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, Date, DateTime, Text, JSON, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
@@ -70,3 +70,27 @@ class Abhaengigkeit(Base):
 
     quelle = relationship("Aktivitaet", foreign_keys=[quelle_id], back_populates="abhaengigkeiten_quelle")
     ziel = relationship("Aktivitaet", foreign_keys=[ziel_id], back_populates="abhaengigkeiten_ziel")
+
+
+class StationsStatusEnum(str, enum.Enum):
+    nicht_ausgestattet = "nicht_ausgestattet"
+    ausgestattet = "ausgestattet"
+    aktiv = "aktiv"
+
+
+class Netztrafostation(Base):
+    __tablename__ = "netztrafostationen"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    adresse = Column(String, nullable=True)
+    stadtteil = Column(String, nullable=True)
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)
+    status = Column(Enum(StationsStatusEnum), nullable=False, default=StationsStatusEnum.nicht_ausgestattet)
+    ausgestattet_am = Column(Date, nullable=True)
+    aktiv_seit = Column(Date, nullable=True)
+    letztes_auslesen = Column(Date, nullable=True)
+    anmerkungen = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

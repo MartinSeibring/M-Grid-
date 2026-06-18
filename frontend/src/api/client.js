@@ -28,4 +28,14 @@ export const api = {
   deleteAbhaengigkeit: (id) => request('DELETE', `/abhaengigkeiten/${id}`),
 
   getSummary: () => request('GET', '/analytics/summary'),
+
+  getStationen: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request('GET', `/stationen${q ? '?' + q : ''}`);
+  },
+  getStation: (id) => request('GET', `/stationen/${id}`),
+  createStation: (data) => request('POST', '/stationen', data),
+  updateStation: (id, data) => request('PUT', `/stationen/${id}`, data),
+  deleteStation: (id) => request('DELETE', `/stationen/${id}`),
+  getStationenSummary: () => request('GET', '/stationen/summary'),
 };
