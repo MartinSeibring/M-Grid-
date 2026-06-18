@@ -34,6 +34,11 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: SPA-Routing und Jekyll deaktivieren
+        run: |
+          cp frontend/dist/index.html frontend/dist/404.html
+          touch frontend/dist/.nojekyll
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
