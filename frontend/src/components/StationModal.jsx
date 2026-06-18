@@ -18,13 +18,13 @@ const DEFAULTS = {
 const INPUT = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400';
 
 async function geocodeAdresse(adresse) {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1&addressdetails=1`;
-  const res = await fetch(url, {
-    headers: { 'Accept-Language': 'de', 'User-Agent': 'M-Grid/1.0 SWM-Infrastruktur' },
-  });
+  // User-Agent darf im Browser nicht gesetzt werden (verbotener Header → CORS-Fehler).
+  // accept-language und countrycodes als Query-Parameter statt Headers übergeben.
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1&addressdetails=1&accept-language=de&countrycodes=de`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Geocoding-Service nicht erreichbar');
   const data = await res.json();
-  if (data.length === 0) throw new Error('Adresse nicht gefunden – bitte präzisieren');
+  if (data.length === 0) throw new Error('Adresse nicht gefunden – bitte genauer eingeben (z.B. mit PLZ)');
   return {
     lat: parseFloat(data[0].lat),
     lng: parseFloat(data[0].lon),
@@ -104,7 +104,10 @@ export function StationModal({ station, onClose, onSaved }) {
       }
       onSaved();
     } catch (err) {
-      setError(err.message);
+      const msg = err.message.includes('405') || err.message.includes('404')
+        ? 'Kein Backend erreichbar. Bitte die App im Codespace starten (uvicorn main:app --reload).'
+        : err.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
