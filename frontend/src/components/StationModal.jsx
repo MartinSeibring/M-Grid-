@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, MapPin, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { api } from '../api/client';
 
 const DEFAULTS = {
@@ -17,10 +17,27 @@ const DEFAULTS = {
 
 const INPUT = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400';
 
+async function geocodeAdresse(adresse) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1&addressdetails=1`;
+  const res = await fetch(url, {
+    headers: { 'Accept-Language': 'de', 'User-Agent': 'M-Grid/1.0 SWM-Infrastruktur' },
+  });
+  if (!res.ok) throw new Error('Geocoding-Service nicht erreichbar');
+  const data = await res.json();
+  if (data.length === 0) throw new Error('Adresse nicht gefunden – bitte präzisieren');
+  return {
+    lat: parseFloat(data[0].lat),
+    lng: parseFloat(data[0].lon),
+    display: data[0].display_name,
+  };
+}
+
 export function StationModal({ station, onClose, onSaved }) {
   const [form, setForm] = useState(DEFAULTS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [geoState, setGeoState] = useState(null); // null | 'loading' | 'ok' | 'error'
+  const [geoMsg, setGeoMsg] = useState('');
 
   useEffect(() => {
     if (station?.id) {
@@ -39,9 +56,33 @@ export function StationModal({ station, onClose, onSaved }) {
     } else {
       setForm(DEFAULTS);
     }
+    setGeoState(null);
+    setGeoMsg('');
   }, [station]);
 
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const set = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    if (field === 'adresse') { setGeoState(null); setGeoMsg(''); }
+  };
+
+  async function handleGeocode() {
+    if (!form.adresse.trim()) {
+      setGeoState('error');
+      setGeoMsg('Bitte zuerst eine Adresse eingeben.');
+      return;
+    }
+    setGeoState('loading');
+    setGeoMsg('');
+    try {
+      const result = await geocodeAdresse(form.adresse);
+      setForm((f) => ({ ...f, lat: result.lat, lng: result.lng }));
+      setGeoState('ok');
+      setGeoMsg(result.display);
+    } catch (err) {
+      setGeoState('error');
+      setGeoMsg(err.message);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -103,27 +144,66 @@ export function StationModal({ station, onClose, onSaved }) {
             </div>
           </div>
 
+          {/* Adresse + Geocoding */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Adresse</label>
-            <input value={form.adresse} onChange={set('adresse')}
-              placeholder="z.B. Ludwigstr. 14, 80539 München" className={INPUT} />
+            <div className="flex gap-2">
+              <input
+                value={form.adresse}
+                onChange={set('adresse')}
+                placeholder="z.B. Ludwigstr. 14, 80539 München"
+                className={INPUT}
+              />
+              <button
+                type="button"
+                onClick={handleGeocode}
+                disabled={geoState === 'loading'}
+                title="Koordinaten automatisch aus Adresse ermitteln"
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors shrink-0 disabled:opacity-50"
+              >
+                {geoState === 'loading'
+                  ? <Loader2 size={15} className="animate-spin" />
+                  : <MapPin size={15} />}
+                <span className="hidden sm:inline">Ermitteln</span>
+              </button>
+            </div>
+
+            {/* Geocoding-Feedback */}
+            {geoState === 'ok' && (
+              <div className="mt-1.5 flex items-start gap-1.5 text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                <CheckCircle size={13} className="mt-0.5 shrink-0" />
+                <span className="line-clamp-2">{geoMsg}</span>
+              </div>
+            )}
+            {geoState === 'error' && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                <AlertCircle size={13} className="shrink-0" />
+                {geoMsg}
+              </div>
+            )}
           </div>
 
+          {/* Koordinaten (automatisch befüllt oder manuell) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Breitengrad (Lat)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Breitengrad (Lat)
+                {geoState === 'ok' && <span className="ml-1 text-green-600 text-xs">✓ auto</span>}
+              </label>
               <input type="number" step="any" value={form.lat} onChange={set('lat')}
-                placeholder="z.B. 48.1551" className={INPUT} />
+                placeholder="z.B. 48.1551"
+                className={`${INPUT} ${geoState === 'ok' ? 'bg-green-50 border-green-300' : ''}`} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Längengrad (Lng)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Längengrad (Lng)
+                {geoState === 'ok' && <span className="ml-1 text-green-600 text-xs">✓ auto</span>}
+              </label>
               <input type="number" step="any" value={form.lng} onChange={set('lng')}
-                placeholder="z.B. 11.5820" className={INPUT} />
+                placeholder="z.B. 11.5820"
+                className={`${INPUT} ${geoState === 'ok' ? 'bg-green-50 border-green-300' : ''}`} />
             </div>
           </div>
-          <p className="text-xs text-slate-400 -mt-2">
-            Koordinaten findest du z.B. bei Google Maps (Rechtsklick → „Was ist hier?")
-          </p>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
