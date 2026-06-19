@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, MapPin, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { api } from '../api/client';
+import { geocodeAdresse } from '../utils/geocode';
 
 const DEFAULTS = {
   name: '',
@@ -16,21 +17,6 @@ const DEFAULTS = {
 };
 
 const INPUT = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400';
-
-async function geocodeAdresse(adresse) {
-  // User-Agent darf im Browser nicht gesetzt werden (verbotener Header → CORS-Fehler).
-  // accept-language und countrycodes als Query-Parameter statt Headers übergeben.
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1&addressdetails=1&accept-language=de&countrycodes=de`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Geocoding-Service nicht erreichbar');
-  const data = await res.json();
-  if (data.length === 0) throw new Error('Adresse nicht gefunden – bitte genauer eingeben (z.B. mit PLZ)');
-  return {
-    lat: parseFloat(data[0].lat),
-    lng: parseFloat(data[0].lon),
-    display: data[0].display_name,
-  };
-}
 
 export function StationModal({ station, onClose, onSaved }) {
   const [form, setForm] = useState(DEFAULTS);

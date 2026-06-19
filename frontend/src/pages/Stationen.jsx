@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-import { Map, Table2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Map, Table2, Plus, Pencil, Trash2, Upload } from 'lucide-react';
 import { api } from '../api/client';
 import { StationModal } from '../components/StationModal';
+import { CsvImportModal } from '../components/CsvImportModal';
 
 const STATUS_CONFIG = {
   nicht_ausgestattet: { color: '#94a3b8', label: 'Nicht ausgestattet', bg: 'bg-slate-100 text-slate-600' },
@@ -37,6 +38,7 @@ export function Stationen() {
   const [filterStatus, setFilterStatus] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editStation, setEditStation] = useState(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -79,10 +81,16 @@ export function Stationen() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-bold text-slate-800">Netztrafo­stationen</h1>
-        <button onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold rounded-lg text-sm">
-          <Plus size={15} /> Neue Station
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setImportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-sm">
+            <Upload size={15} /> CSV importieren
+          </button>
+          <button onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold rounded-lg text-sm">
+            <Plus size={15} /> Neue Station
+          </button>
+        </div>
       </div>
       <p className="text-slate-500 text-sm mb-6">Digitalisierungsfortschritt der Netztrafo­stationen im Versorgungsgebiet</p>
 
@@ -228,6 +236,12 @@ export function Stationen() {
 
       {modalOpen && (
         <StationModal station={editStation} onClose={closeModal} onSaved={handleSaved} />
+      )}
+      {importModalOpen && (
+        <CsvImportModal
+          onClose={() => setImportModalOpen(false)}
+          onImported={() => { setImportModalOpen(false); load(); }}
+        />
       )}
     </div>
   );
