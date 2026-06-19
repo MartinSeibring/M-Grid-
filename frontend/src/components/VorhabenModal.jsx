@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 
 const TABS = [
@@ -14,18 +14,18 @@ const EMPTY_META = {
   aktivitaet_id: '',
   mengengeber_bereich: '',
   freigabe_mboard: '',
-  projektart: '',
+  art_der_massnahme: 'ungeplante_massnahme',
   problemstellung: '',
-  weitere_infos: '',
-  stakeholder_bn_me: '',
+  ziele: '',
+  nicht_ziele: '',
+  stakeholder: [{ name: '', nutzen: '' }],
   nachweise_ressourcen: '',
-  netztransformation_ressourcen: '',
+  abhaengigkeiten_projekte: '',
   risiko_eintritt: 'mittel',
   risiko_auswirkung: 'mittel',
   regulatorik: false,
   strategiebeitrag: '',
-  ressourcen_plan_pt: '',
-  ressourcen_ist_pt: '',
+  ressourcen: [{ bereich: '', pt: '' }],
   voraussetzungen: '',
 };
 
@@ -59,42 +59,42 @@ function RisikoMatrix({ eintritt, auswirkung, onChange }) {
     <div>
       <p className="text-xs text-slate-500 mb-2">Klicke auf eine Zelle, um Eintritt × Auswirkung zu setzen</p>
       <div className="overflow-x-auto">
-      <div className="inline-block border border-slate-200 rounded-lg overflow-hidden">
-        <table className="text-xs text-center">
-          <thead>
-            <tr>
-              <th className="px-3 py-2 bg-slate-50 text-slate-500 border-b border-r text-left">
-                Eintritt ↓ / Auswirkung →
-              </th>
-              {levels.map((a) => (
-                <th key={a} className="px-6 py-2 bg-slate-50 text-slate-600 border-b border-r font-medium">
-                  {labels[a]}
+        <div className="inline-block border border-slate-200 rounded-lg overflow-hidden">
+          <table className="text-xs text-center">
+            <thead>
+              <tr>
+                <th className="px-3 py-2 bg-slate-50 text-slate-500 border-b border-r text-left">
+                  Eintritt ↓ / Auswirkung →
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...levels].reverse().map((e) => (
-              <tr key={e}>
-                <td className="px-3 py-2 bg-slate-50 text-slate-600 border-b border-r font-medium text-left">
-                  {labels[e]}
-                </td>
                 {levels.map((a) => (
-                  <td
-                    key={a}
-                    onClick={() => onChange(e, a)}
-                    className={`px-6 py-3 border-b border-r cursor-pointer transition-all
-                      ${cellColor(e, a)}
-                      ${isSelected(e, a) ? 'ring-2 ring-inset ring-slate-900 scale-95 font-bold' : 'opacity-60 hover:opacity-90'}`}
-                  >
-                    {isSelected(e, a) ? '✓' : ''}
-                  </td>
+                  <th key={a} className="px-6 py-2 bg-slate-50 text-slate-600 border-b border-r font-medium">
+                    {labels[a]}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {[...levels].reverse().map((e) => (
+                <tr key={e}>
+                  <td className="px-3 py-2 bg-slate-50 text-slate-600 border-b border-r font-medium text-left">
+                    {labels[e]}
+                  </td>
+                  {levels.map((a) => (
+                    <td
+                      key={a}
+                      onClick={() => onChange(e, a)}
+                      className={`px-6 py-3 border-b border-r cursor-pointer transition-all
+                        ${cellColor(e, a)}
+                        ${isSelected(e, a) ? 'ring-2 ring-inset ring-slate-900 scale-95 font-bold' : 'opacity-60 hover:opacity-90'}`}
+                    >
+                      {isSelected(e, a) ? '✓' : ''}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <p className="text-xs text-slate-500 mt-2">
         Aktuell: Eintritt = <strong>{labels[eintritt]}</strong>, Auswirkung = <strong>{labels[auswirkung]}</strong>
@@ -125,6 +125,10 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
 
   useEffect(() => {
     if (vorhaben?.id) {
+      const meta = { ...EMPTY_META, ...(vorhaben.metadaten || {}) };
+      // ensure dynamic arrays are always arrays
+      if (!Array.isArray(meta.stakeholder)) meta.stakeholder = [{ name: '', nutzen: '' }];
+      if (!Array.isArray(meta.ressourcen)) meta.ressourcen = [{ bereich: '', pt: '' }];
       setForm({
         name: vorhaben.name || '',
         typ: vorhaben.typ || 'massnahme',
@@ -137,21 +141,35 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
         fortschritt: vorhaben.fortschritt ?? 0,
         verantwortlicher: vorhaben.verantwortlicher || '',
         beschreibung: vorhaben.beschreibung || '',
-        metadaten: { ...EMPTY_META, ...(vorhaben.metadaten || {}) },
+        metadaten: meta,
       });
     } else {
-      setForm(DEFAULTS);
+      setForm({ ...DEFAULTS, metadaten: { ...EMPTY_META } });
     }
+    setTab(0);
   }, [vorhaben]);
 
-  const set = (field) => (e) =>
-    setForm((f) => ({ ...f, [field]: e.target.value }));
+  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const setMeta = (field) => (e) => setForm((f) => ({ ...f, metadaten: { ...f.metadaten, [field]: e.target.value } }));
+  const setMetaVal = (field, val) => setForm((f) => ({ ...f, metadaten: { ...f.metadaten, [field]: val } }));
 
-  const setMeta = (field) => (e) =>
-    setForm((f) => ({ ...f, metadaten: { ...f.metadaten, [field]: e.target.value } }));
+  // Stakeholder dynamic list handlers
+  const addStakeholder = () => setMetaVal('stakeholder', [...form.metadaten.stakeholder, { name: '', nutzen: '' }]);
+  const updateStakeholder = (i, field, val) => {
+    const next = [...form.metadaten.stakeholder];
+    next[i] = { ...next[i], [field]: val };
+    setMetaVal('stakeholder', next);
+  };
+  const removeStakeholder = (i) => setMetaVal('stakeholder', form.metadaten.stakeholder.filter((_, idx) => idx !== i));
 
-  const setMetaVal = (field, val) =>
-    setForm((f) => ({ ...f, metadaten: { ...f.metadaten, [field]: val } }));
+  // Ressourcen dynamic list handlers
+  const addRessource = () => setMetaVal('ressourcen', [...form.metadaten.ressourcen, { bereich: '', pt: '' }]);
+  const updateRessource = (i, field, val) => {
+    const next = [...form.metadaten.ressourcen];
+    next[i] = { ...next[i], [field]: val };
+    setMetaVal('ressourcen', next);
+  };
+  const removeRessource = (i) => setMetaVal('ressourcen', form.metadaten.ressourcen.filter((_, idx) => idx !== i));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -181,12 +199,13 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
   }
 
   const m = form.metadaten;
+  const ressourcenSumme = (m.ressourcen || []).reduce((s, r) => s + (Number(r.pt) || 0), 0);
 
   const tabContent = [
     // Tab 0: Kopfdaten
     <div key="kopf" className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Aktivität-ID" >
+        <Field label="Aktivität-ID">
           <input value={m.aktivitaet_id} onChange={setMeta('aktivitaet_id')}
             placeholder="z.B. M-NM-021" className={INPUT} />
         </Field>
@@ -208,9 +227,11 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Projektart">
-          <input value={m.projektart} onChange={setMeta('projektart')}
-            placeholder="z.B. Rollout, Pilotprojekt, ..." className={INPUT} />
+        <Field label="Art der Maßnahme">
+          <select value={m.art_der_massnahme} onChange={setMeta('art_der_massnahme')} className={INPUT}>
+            <option value="ungeplante_massnahme">Ungeplante Maßnahme</option>
+            <option value="geplante_massnahme">Geplante Maßnahme</option>
+          </select>
         </Field>
         <Field label="Verantwortlicher">
           <input value={form.verantwortlicher} onChange={set('verantwortlicher')} className={INPUT} />
@@ -257,33 +278,69 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
           placeholder="Was soll mit diesem Vorhaben erreicht werden?" className={TEXTAREA} />
       </Field>
       <Field label="Problemstellung / Hintergrund">
-        <textarea rows={4} value={m.problemstellung} onChange={setMeta('problemstellung')}
+        <textarea rows={3} value={m.problemstellung} onChange={setMeta('problemstellung')}
           placeholder="Welches Problem wird adressiert? Was ist der Hintergrund?" className={TEXTAREA} />
       </Field>
-      <Field label="Weitere Infos / Notizen">
-        <textarea rows={3} value={m.weitere_infos} onChange={setMeta('weitere_infos')}
-          placeholder="Ergänzende Informationen, Links, Referenzen..." className={TEXTAREA} />
+      <Field label="Ziele des Vorhabens">
+        <textarea rows={3} value={m.ziele} onChange={setMeta('ziele')}
+          placeholder="Was wird mit diesem Vorhaben konkret erreicht?" className={TEXTAREA} />
+      </Field>
+      <Field label="Nicht-Ziele des Vorhabens">
+        <textarea rows={3} value={m.nicht_ziele} onChange={setMeta('nicht_ziele')}
+          placeholder="Was ist ausdrücklich nicht Bestandteil dieses Vorhabens?" className={TEXTAREA} />
       </Field>
     </div>,
 
     // Tab 2: Stakeholder
     <div key="stakeholder" className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="BN / ME (Stakeholder)">
-          <textarea rows={3} value={m.stakeholder_bn_me} onChange={setMeta('stakeholder_bn_me')}
-            placeholder="z.B. BN: Herr Müller&#10;ME: Team NSD" className={TEXTAREA} />
-        </Field>
-        <Field label="Nachweise (Ressourcen)">
-          <textarea rows={3} value={m.nachweise_ressourcen} onChange={setMeta('nachweise_ressourcen')}
-            placeholder="z.B. 2 Bewerb/m zur Umsetzung" className={TEXTAREA} />
-        </Field>
-      </div>
-      <Field label="Netztransformation (Ressourcen)">
-        <textarea rows={3} value={m.netztransformation_ressourcen} onChange={setMeta('netztransformation_ressourcen')}
-          placeholder="z.B. 3 Bewerb/m zur Umsetzung" className={TEXTAREA} />
+      <Field label="Stakeholder & Nutzen">
+        <div className="space-y-2">
+          {(m.stakeholder || []).map((sh, i) => (
+            <div key={i} className="flex gap-2 items-start">
+              <input
+                value={sh.name}
+                onChange={(e) => updateStakeholder(i, 'name', e.target.value)}
+                placeholder="Stakeholder (z.B. BN: Herr Müller)"
+                className={INPUT}
+              />
+              <input
+                value={sh.nutzen}
+                onChange={(e) => updateStakeholder(i, 'nutzen', e.target.value)}
+                placeholder="Nutzen / Interesse"
+                className={INPUT}
+              />
+              <button
+                type="button"
+                onClick={() => removeStakeholder(i)}
+                disabled={(m.stakeholder || []).length <= 1}
+                className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 shrink-0 mt-0.5"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addStakeholder}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900 border border-dashed border-slate-300 hover:border-slate-400 rounded-lg transition-colors"
+          >
+            <Plus size={14} /> Stakeholder hinzufügen
+          </button>
+        </div>
       </Field>
+
+      <Field label="Nachweise (Ressourcen)">
+        <textarea rows={2} value={m.nachweise_ressourcen} onChange={setMeta('nachweise_ressourcen')}
+          placeholder="z.B. 2 Bewerb/m zur Umsetzung" className={TEXTAREA} />
+      </Field>
+
+      <Field label="Abhängigkeiten zu anderen Vorhaben / Projekten">
+        <textarea rows={3} value={m.abhaengigkeiten_projekte} onChange={setMeta('abhaengigkeiten_projekte')}
+          placeholder="z.B. Abhängig von Projekt M-NM-015 (Rollout Zähler); blockiert durch ..." className={TEXTAREA} />
+      </Field>
+
       <Field label="Voraussetzungen für Machbarkeit">
-        <textarea rows={4} value={m.voraussetzungen} onChange={setMeta('voraussetzungen')}
+        <textarea rows={3} value={m.voraussetzungen} onChange={setMeta('voraussetzungen')}
           placeholder="Was muss erfüllt sein, damit das Vorhaben umgesetzt werden kann?" className={TEXTAREA} />
       </Field>
     </div>,
@@ -326,31 +383,55 @@ export function VorhabenModal({ vorhaben, onClose, onSaved }) {
 
     // Tab 4: Ressourcen
     <div key="ressourcen" className="space-y-4">
-      <div className="bg-slate-50 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Ressourcenplanung (Personentage)</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Plan PT">
-            <input type="number" min="0" value={m.ressourcen_plan_pt}
-              onChange={setMeta('ressourcen_plan_pt')}
-              placeholder="z.B. 90" className={INPUT} />
-          </Field>
-          <Field label="Ist PT (verbraucht)">
-            <input type="number" min="0" value={m.ressourcen_ist_pt}
-              onChange={setMeta('ressourcen_ist_pt')}
-              placeholder="z.B. 41" className={INPUT} />
-          </Field>
-        </div>
-        {m.ressourcen_plan_pt && m.ressourcen_ist_pt && (
-          <div className="mt-3 text-sm text-slate-600">
-            Verbleibend: <strong>{Number(m.ressourcen_plan_pt) - Number(m.ressourcen_ist_pt)} PT</strong>
-            {' '}({Math.round((Number(m.ressourcen_ist_pt) / Number(m.ressourcen_plan_pt)) * 100)}% verbraucht)
+      <Field label="Ressourcenplanung (Bereich / Personentage)">
+        <div className="space-y-2">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs text-slate-500 px-1">
+            <span>Bereich (Kürzel)</span>
+            <span>Personentage (PT)</span>
+            <span />
           </div>
-        )}
-      </div>
+          {(m.ressourcen || []).map((r, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+              <input
+                value={r.bereich}
+                onChange={(e) => updateRessource(i, 'bereich', e.target.value)}
+                placeholder="z.B. NM"
+                maxLength={6}
+                className={INPUT + ' uppercase'}
+              />
+              <input
+                type="number"
+                min="0"
+                value={r.pt}
+                onChange={(e) => updateRessource(i, 'pt', e.target.value)}
+                placeholder="z.B. 30"
+                className={INPUT}
+              />
+              <button
+                type="button"
+                onClick={() => removeRessource(i)}
+                disabled={(m.ressourcen || []).length <= 1}
+                className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addRessource}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900 border border-dashed border-slate-300 hover:border-slate-400 rounded-lg transition-colors"
+          >
+            <Plus size={14} /> Bereich hinzufügen
+          </button>
+        </div>
+      </Field>
 
-      <p className="text-xs text-slate-400">
-        Abhängigkeiten zu anderen Vorhaben/Projekten können nach dem Speichern im Abhängigkeits-Graph verknüpft werden.
-      </p>
+      {ressourcenSumme > 0 && (
+        <div className="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700">
+          Summe: <strong>{ressourcenSumme} PT</strong>
+        </div>
+      )}
     </div>,
   ];
 
